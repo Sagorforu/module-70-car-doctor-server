@@ -1,13 +1,13 @@
 const express = require('express');
-const cors = require('cors');
+const cors = require('cors')
 const app = express();
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 
 
 // middleware
-app.use(cors());
+app.use(cors())
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.gaxw2ro.mongodb.net/?retryWrites=true&w=majority`;
@@ -27,11 +27,45 @@ async function run() {
     await client.connect();
 
     const serviceCollection = client.db('carDoctor').collection('services');
+    const checkOutCollection = client.db('carDoctor').collection('checkOut')
 
     app.get('/services', async(req, res) => {
         const cursor = serviceCollection.find();
         const result = await cursor.toArray();
         res.send(result);
+    })
+
+    app.get('/services/:id', async(req, res)=> {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const options = {
+            projection: { title: 1, price: 1, service_id: 1, img: 1 },
+          };
+        const result = await serviceCollection.findOne(query, options);
+        res.send(result);
+    })
+
+    // checkout
+    app.get('/checkOut', async(req, res) => {
+      // console.log(req.query.email)
+      let query = {};
+      if (req.query?.email) {
+        query = {email: req.query.email}
+      }
+      const result = await checkOutCollection.find(query).toArray();
+      res.send(result);
+    })
+    app.post('/checkOut', async(req, res) => {
+        const checkOut = req.body;
+        console.log(checkOut)
+        const result = await checkOutCollection.insertOne(checkOut);
+        res.send(result);
+    })
+    app.delete('/checkOut/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id)};
+      const result = await checkOutCollection.deleteOne(query);
+      res.send(result);
     })
 
     // Send a ping to confirm a successful connection
